@@ -121,5 +121,11 @@
   <ItemGroup>
     <None Include="Resources\Basic Race Track.png" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\RedCar.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\BlueCar.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
 </Project>

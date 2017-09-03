@@ -10,10 +10,13 @@ Public Class MainForm
             Dim keyMoveRight As PlayerKeys
             Dim keyAccel As PlayerKeys
             Dim keyBrake As PlayerKeys
+            Private _primaryCarDisplay As PictureBox
+            Private _primaryCarImage As Image
             Private _maxA As Double ' Max Acceleration allowed, same units as above
             Private _v As Double ' Current Velocity (probably in pixels/tick ?)
             Private _a As Double ' Current Acceleration (probably in pixels/tick^2 ?)
             Private _x As Double ' Current x (horz) position of the player vehicle
+            Private _dx As Double ' Amount to change the x position for each tick
             Private _rx As Double ' Current x (horz) position of the player vehicle relative to the track segment
             Private _y As Double ' Current y (vert) position of the player vehicle relative to the track segment
             Private _ry As Double ' Current y (vert) position of the player vehicle relative to the track segment
@@ -122,6 +125,32 @@ Public Class MainForm
                 End Set
             End Property
 
+            Public Property Dx As Double
+                Get
+                    Return _dx
+                End Get
+                Set(value As Double)
+                    _dx = value
+                End Set
+            End Property
+
+            Public Property PrimaryCarDisplay As PictureBox
+                Get
+                    Return _primaryCarDisplay
+                End Get
+                Set(value As PictureBox)
+                    _primaryCarDisplay = value
+                End Set
+            End Property
+
+            Public Property PrimaryCarImage As Image
+                Get
+                    Return _primaryCarImage
+                End Get
+                Set(value As Image)
+                    _primaryCarImage = value
+                End Set
+            End Property
         End Structure
 
 
@@ -137,11 +166,7 @@ Public Class MainForm
     Dim MyPlayers As PlayerInfoClass
 
 
-    Private Sub MyPlayersTest()
-        MyPlayers.P1.KeyAccel.CurValue = 8
 
-
-    End Sub
 
 
     Private Sub UpdateDebugDisplay()
@@ -199,6 +224,7 @@ Public Class MainForm
 
         ' Player 1 
         With MyPlayers.P1
+            ' Set the keys
             .keyAccel.DefaultValue = Keys.W
             .keyAccel.CurValue = Keys.W
             .keyAccel.IsDown = False
@@ -211,6 +237,15 @@ Public Class MainForm
             .keyMoveRight.DefaultValue = Keys.D
             .keyMoveRight.CurValue = Keys.D
             .keyMoveRight.IsDown = False
+
+            ' Set the initial location properties
+            .Dx = 1
+            .X = 156 ' 156 is the x value of the PictureBox on Track 1
+
+            ' Initialize the car that goes with the player
+            .PrimaryCarDisplay = LeftP1CarPictureBox
+            ' Initialize the image that goes with the player
+            .PrimaryCarImage = LeftP1CarPictureBox.Image
         End With
 
 
@@ -227,7 +262,16 @@ Public Class MainForm
             .KeyMoveLeft.IsDown = False
             .KeyMoveRight.DefaultValue = Keys.Right
             .keyMoveRight.CurValue = Keys.Right
-            .KeyMoveRight.IsDown = False
+            .keyMoveRight.IsDown = False
+
+            ' Set the initial location properties
+            .Dx = 1
+            .X = 213 '213 is the x value of the PictureBox on Track 2
+
+            ' Initialize the car that goes with the player
+            .PrimaryCarDisplay = RightP2CarPictureBox
+            ' Initialize the image that goes with the player
+            .PrimaryCarImage = RightP2CarPictureBox.Image
         End With
     End Sub
 
@@ -248,23 +292,68 @@ Public Class MainForm
         ' Move the tracks down every tick, if the car is accelerating
         MoveTrackRoot()
 
+        ' Move the cars left or right as determined by the currently pressed keys
+        MoveRaceCars()
 
         ' Relocate Tracks A or B if they move below the panel's border
-        AdjustTrackSegments()
+        UpdateDisplayedTrackSegments()
 
+        ' Update Display
+        ' After all the above calculations are complete, move the display elements to the correct places
+        UpdateDisplayedCarPositions()
+
+    End Sub
+
+    Private Sub UpdateDisplayedCarPositions()
+        ' Adjust the Picture Boxes that hold the car items to the new values.
+        ' Player 1
+        MyPlayers.P1.PrimaryCarDisplay.Left = MyPlayers.P1.X
+
+
+        ' Player 2
+        MyPlayers.P2.PrimaryCarDisplay.Left = MyPlayers.P2.X
+
+
+    End Sub
+
+    Private Sub MoveRaceCars()
+        ' Move the player cars left or right based on the keys currently pressed
+
+        'Player 1
+        With MyPlayers.P1
+            If .keyMoveLeft.IsDown Then
+                'Moving left is held down, so move left
+                .X -= .Dx
+            ElseIf .keyMoveRight.IsDown Then
+                ' Moving right is held down, so move right
+                .X += .Dx
+            End If
+        End With
+
+
+        'Player 2
+        With MyPlayers.P2
+            If .keyMoveLeft.IsDown Then
+                'Moving left is held down, so move left
+                .X -= .Dx
+            ElseIf .keyMoveRight.IsDown Then
+                ' Moving right is held down, so move right
+                .X += .Dx
+            End If
+        End With
 
     End Sub
 
     Private Sub MoveTrackRoot()
         ' Move the tracks down every tick, if the car is accelerating
-        If MyPlayers.P1.KeyAccel.IsDown Then
+        If MyPlayers.P1.keyAccel.IsDown Then
             If TickCounter Mod 1 = 0 Then
                 MoveTrack(LeftTrackPictureBoxA, 1)
                 MoveTrack(LeftTrackPictureBoxB, 1)
             End If
         End If
 
-        If MyPlayers.P2.KeyAccel.IsDown Then
+        If MyPlayers.P2.keyAccel.IsDown Then
             If TickCounter Mod 1 = 0 Then
                 MoveTrack(RightTrackPictureBoxA, 1)
                 MoveTrack(RightTrackPictureBoxB, 1)
@@ -272,7 +361,7 @@ Public Class MainForm
         End If
     End Sub
 
-    Private Sub AdjustTrackSegments()
+    Private Sub UpdateDisplayedTrackSegments()
         ' Relocate Tracks A or B if they move below the panel's border
 
         ' Left Track
@@ -338,10 +427,6 @@ Public Class MainForm
         End With
     End Sub
 
-    Private Sub LeftP1CarPictureBox_Click(sender As Object, e As EventArgs) Handles LeftP1CarPictureBox.Click
-
-    End Sub
-
 
 
     Private Sub MainForm_PreviewKeyDown(sender As Object, e As PreviewKeyDownEventArgs) Handles MyBase.PreviewKeyDown
@@ -401,8 +486,5 @@ Public Class MainForm
 
     End Sub
 
-    Private Sub KeyBoardTesting()
-        'My.Computer.Keyboard.
-    End Sub
 
 End Class
