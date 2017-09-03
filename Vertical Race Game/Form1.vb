@@ -10,7 +10,8 @@ Public Class MainForm
             Dim keyMoveRight As PlayerKeys
             Dim keyAccel As PlayerKeys
             Dim keyBrake As PlayerKeys
-            Private _primaryCarDisplay As PictureBox
+            Dim PrimaryCarPictureBox As PictureBox
+            Dim RelativeCarPictureBox As PictureBox
             Private _primaryCarImage As Image
             Private _maxA As Double ' Max Acceleration allowed, same units as above
             Private _v As Double ' Current Velocity (probably in pixels/tick ?)
@@ -134,15 +135,6 @@ Public Class MainForm
                 End Set
             End Property
 
-            Public Property PrimaryCarDisplay As PictureBox
-                Get
-                    Return _primaryCarDisplay
-                End Get
-                Set(value As PictureBox)
-                    _primaryCarDisplay = value
-                End Set
-            End Property
-
             Public Property PrimaryCarImage As Image
                 Get
                     Return _primaryCarImage
@@ -151,6 +143,8 @@ Public Class MainForm
                     _primaryCarImage = value
                 End Set
             End Property
+
+
         End Structure
 
 
@@ -171,15 +165,15 @@ Public Class MainForm
 
     Private Sub UpdateDebugDisplay()
         ' Player1
-        Label8.Text = MyPlayers.P1.KeyAccel.IsDown
-        Label7.Text = MyPlayers.P1.KeyBrake.IsDown
-        Label6.Text = MyPlayers.P1.KeyMoveLeft.IsDown
-        Label5.Text = MyPlayers.P1.KeyMoveRight.IsDown
+        Label8.Text = MyPlayers.P1.keyAccel.IsDown
+        Label7.Text = MyPlayers.P1.keyBrake.IsDown
+        Label6.Text = MyPlayers.P1.keyMoveLeft.IsDown
+        Label5.Text = MyPlayers.P1.keyMoveRight.IsDown
         ' Player2
-        Label12.Text = MyPlayers.P2.KeyAccel.IsDown
-        Label11.Text = MyPlayers.P2.KeyBrake.IsDown
-        Label10.Text = MyPlayers.P2.KeyMoveLeft.IsDown
-        Label9.Text = MyPlayers.P2.KeyMoveRight.IsDown
+        Label12.Text = MyPlayers.P2.keyAccel.IsDown
+        Label11.Text = MyPlayers.P2.keyBrake.IsDown
+        Label10.Text = MyPlayers.P2.keyMoveLeft.IsDown
+        Label9.Text = MyPlayers.P2.keyMoveRight.IsDown
     End Sub
 
     Private Sub InitializeKeyboardSettings()
@@ -187,34 +181,34 @@ Public Class MainForm
 
         ' Player 1 default controls
         With MyPlayers.P1
-            .KeyAccel.DefaultValue = Keys.W
+            .keyAccel.DefaultValue = Keys.W
             .keyAccel.CurValue = Keys.W
-            .KeyAccel.IsDown = False
-            .KeyBrake.DefaultValue = Keys.S
-            .KeyBrake.CurValue = Keys.S
-            .KeyBrake.IsDown = False
-            .KeyMoveLeft.DefaultValue = Keys.A
-            .KeyMoveLeft.CurValue = Keys.A
-            .KeyMoveLeft.IsDown = False
-            .KeyMoveRight.DefaultValue = Keys.D
-            .KeyMoveRight.CurValue = Keys.D
-            .KeyMoveRight.IsDown = False
+            .keyAccel.IsDown = False
+            .keyBrake.DefaultValue = Keys.S
+            .keyBrake.CurValue = Keys.S
+            .keyBrake.IsDown = False
+            .keyMoveLeft.DefaultValue = Keys.A
+            .keyMoveLeft.CurValue = Keys.A
+            .keyMoveLeft.IsDown = False
+            .keyMoveRight.DefaultValue = Keys.D
+            .keyMoveRight.CurValue = Keys.D
+            .keyMoveRight.IsDown = False
         End With
 
         ' Player 2 default controls
         With MyPlayers.P2
-            .KeyAccel.DefaultValue = Keys.Up
-            .KeyAccel.CurValue = Keys.Up
-            .KeyAccel.IsDown = False
-            .KeyBrake.DefaultValue = Keys.Down
-            .KeyBrake.CurValue = Keys.Down
-            .KeyBrake.IsDown = False
-            .KeyMoveLeft.DefaultValue = Keys.Left
-            .KeyMoveLeft.CurValue = Keys.Left
-            .KeyMoveLeft.IsDown = False
-            .KeyMoveRight.DefaultValue = Keys.Right
-            .KeyMoveRight.CurValue = Keys.Right
-            .KeyMoveRight.IsDown = False
+            .keyAccel.DefaultValue = Keys.Up
+            .keyAccel.CurValue = Keys.Up
+            .keyAccel.IsDown = False
+            .keyBrake.DefaultValue = Keys.Down
+            .keyBrake.CurValue = Keys.Down
+            .keyBrake.IsDown = False
+            .keyMoveLeft.DefaultValue = Keys.Left
+            .keyMoveLeft.CurValue = Keys.Left
+            .keyMoveLeft.IsDown = False
+            .keyMoveRight.DefaultValue = Keys.Right
+            .keyMoveRight.CurValue = Keys.Right
+            .keyMoveRight.IsDown = False
         End With
 
     End Sub
@@ -241,37 +235,43 @@ Public Class MainForm
             ' Set the initial location properties
             .Dx = 1
             .X = 156 ' 156 is the x value of the PictureBox on Track 1
+            .Y = 172 ' 172 is the y value of the PictureBox on Track 1
 
             ' Initialize the car that goes with the player
-            .PrimaryCarDisplay = LeftP1CarPictureBox
+            .PrimaryCarPictureBox = LeftP1CarPictureBox
             ' Initialize the image that goes with the player
             .PrimaryCarImage = LeftP1CarPictureBox.Image
+            .RelativeCarPictureBox = RightP1CarPictureBox 'Set the Relative Picture box to the other picture box
+            .RelativeCarPictureBox.Image = .PrimaryCarImage 'Set the relative car image to the primary car image
         End With
 
 
         ' Player 2 
         With MyPlayers.P2
-            .KeyAccel.DefaultValue = Keys.Up
+            .keyAccel.DefaultValue = Keys.Up
             .keyAccel.CurValue = Keys.Up
-            .KeyAccel.IsDown = False
-            .KeyBrake.DefaultValue = Keys.Down
+            .keyAccel.IsDown = False
+            .keyBrake.DefaultValue = Keys.Down
             .keyBrake.CurValue = Keys.Down
-            .KeyBrake.IsDown = False
-            .KeyMoveLeft.DefaultValue = Keys.Left
+            .keyBrake.IsDown = False
+            .keyMoveLeft.DefaultValue = Keys.Left
             .keyMoveLeft.CurValue = Keys.Left
-            .KeyMoveLeft.IsDown = False
-            .KeyMoveRight.DefaultValue = Keys.Right
+            .keyMoveLeft.IsDown = False
+            .keyMoveRight.DefaultValue = Keys.Right
             .keyMoveRight.CurValue = Keys.Right
             .keyMoveRight.IsDown = False
 
             ' Set the initial location properties
             .Dx = 1
             .X = 213 '213 is the x value of the PictureBox on Track 2
+            .Y = 172 '172 is the y value of the PictrueBox on Track 2
 
             ' Initialize the car that goes with the player
-            .PrimaryCarDisplay = RightP2CarPictureBox
+            .PrimaryCarPictureBox = RightP2CarPictureBox
             ' Initialize the image that goes with the player
             .PrimaryCarImage = RightP2CarPictureBox.Image
+            .RelativeCarPictureBox = LeftP2CarPictureBox
+            .RelativeCarPictureBox.Image = .PrimaryCarImage
         End With
     End Sub
 
@@ -306,13 +306,22 @@ Public Class MainForm
 
     Private Sub UpdateDisplayedCarPositions()
         ' Adjust the Picture Boxes that hold the car items to the new values.
-        ' Player 1
-        MyPlayers.P1.PrimaryCarDisplay.Left = MyPlayers.P1.X
 
+        ' Primary Car
+        ' Player 1
+        MyPlayers.P1.PrimaryCarPictureBox.Left = MyPlayers.P1.X
 
         ' Player 2
-        MyPlayers.P2.PrimaryCarDisplay.Left = MyPlayers.P2.X
+        MyPlayers.P2.PrimaryCarPictureBox.Left = MyPlayers.P2.X
 
+        ' Relative Car
+        ' Player 1
+        MyPlayers.P1.RelativeCarPictureBox.Left = MyPlayers.P1.X
+        MyPlayers.P1.RelativeCarPictureBox.Top = MyPlayers.P1.Ry
+
+        ' Player 2
+        MyPlayers.P2.RelativeCarPictureBox.Left = MyPlayers.P2.X
+        MyPlayers.P2.RelativeCarPictureBox.Top = MyPlayers.P2.Ry
 
     End Sub
 
@@ -341,6 +350,10 @@ Public Class MainForm
                 .X += .Dx
             End If
         End With
+
+        ' Move relative car
+        ' Player 1
+        'MyPlayers.P1.Ry = LeftTrackPictureBoxA.Top - MyPlayers.P1.Y
 
     End Sub
 

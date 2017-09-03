@@ -260,6 +260,7 @@ Partial Class MainForm
         Me.RightP1CarPictureBox.Size = New System.Drawing.Size(40, 40)
         Me.RightP1CarPictureBox.TabIndex = 4
         Me.RightP1CarPictureBox.TabStop = False
+        Me.RightP1CarPictureBox.Visible = False
         '
         'RightTrackPictureBoxB
         '
@@ -290,6 +291,7 @@ Partial Class MainForm
         Me.LeftP2CarPictureBox.Size = New System.Drawing.Size(40, 40)
         Me.LeftP2CarPictureBox.TabIndex = 3
         Me.LeftP2CarPictureBox.TabStop = False
+        Me.LeftP2CarPictureBox.Visible = False
         '
         'LeftP1CarPictureBox
         '
