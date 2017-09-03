@@ -1,12 +1,27 @@
 ﻿Imports Vertical_Race_Game
 
 Public Class MainForm
-    Private Structure PlayerInfoClass
+    Structure PlayerInfoClass
+        Dim P1 As PlayerControls
+        Dim P2 As PlayerControls
+
         Structure PlayerControls
+            Dim keyMoveLeft As PlayerKeys
+            Dim keyMoveRight As PlayerKeys
+            Dim keyAccel As PlayerKeys
+            Dim keyBrake As PlayerKeys
+            Private _maxA As Double ' Max Acceleration allowed, same units as above
+            Private _v As Double ' Current Velocity (probably in pixels/tick ?)
+            Private _a As Double ' Current Acceleration (probably in pixels/tick^2 ?)
+            Private _x As Double ' Current x (horz) position of the player vehicle
+            Private _rx As Double ' Current x (horz) position of the player vehicle relative to the track segment
+            Private _y As Double ' Current y (vert) position of the player vehicle relative to the track segment
+            Private _ry As Double ' Current y (vert) position of the player vehicle relative to the track segment
+            Private _maxV As Double ' Max Velocity allowed, same units as above
             Structure PlayerKeys
                 Private _isDown As Boolean
                 Private _defaultValue As Integer
-                Private _value As Integer
+                Private _curValue As Integer
 
                 Public Property IsDown As Boolean
                     Get
@@ -26,55 +41,15 @@ Public Class MainForm
                     End Set
                 End Property
 
-                Public Property Value As Integer
+                Public Property CurValue As Integer
                     Get
-                        Return _value
+                        Return _curValue
                     End Get
                     Set(value As Integer)
-                        _value = value
+                        _curValue = value
                     End Set
                 End Property
             End Structure
-
-
-            Dim _keyMoveLeft As PlayerKeys
-            Private _keyMoveRight As PlayerKeys
-            Private _keyAccel As PlayerKeys
-            Private _keyBrake As PlayerKeys
-
-
-            Private _v As Double ' Current Velocity (probably in pixels/tick ?)
-            Private _a As Double ' Current Acceleration (probably in pixels/tick^2 ?)
-            Private _x As Double ' Current x (horz) position of the player vehicle
-            Private _rx As Double ' Current x (horz) position of the player vehicle relative to the track segment
-            Private _y As Double ' Current y (vert) position of the player vehicle relative to the track segment
-            Private _ry As Double ' Current y (vert) position of the player vehicle relative to the track segment
-            Private _maxV As Double ' Max Velocity allowed, same units as above
-            Private _maxA As Double ' Max Acceleration allowed, same units as above
-            Private _propertiesLocked As Boolean ' If true, the other properties will reject changes, probably silently
-
-
-            Private _Ppx As Double 'Auto generated for the property?
-
-            'Private _Ppx As Double = 0
-            'Property Ppx As Double
-            ' Get
-            'Return Ppx1
-            'End Get
-            'Set(value As Double)
-            '       Ppx1 = value
-            'End Set
-            'End Property
-
-            Public Property Ppx1 As Double
-                Get
-                    Return _Ppx
-                End Get
-                Set(value As Double)
-                    _Ppx = value
-                End Set
-            End Property
-
             Public Property MaxA As Double
                 Get
                     Return _maxA
@@ -147,54 +122,8 @@ Public Class MainForm
                 End Set
             End Property
 
-            Public Property KeyMoveLeft As PlayerKeys
-                Get
-                    Return _keyMoveLeft
-                End Get
-                Set(value As PlayerKeys)
-                    _keyMoveLeft = value
-                End Set
-            End Property
-
-            Public Property KeyMoveRight As PlayerKeys
-                Get
-                    Return _keyMoveRight
-                End Get
-                Set(value As PlayerKeys)
-                    _keyMoveRight = value
-                End Set
-            End Property
-
-            Public Property KeyAccel As PlayerKeys
-                Get
-                    Return _keyAccel
-                End Get
-                Set(value As PlayerKeys)
-                    _keyAccel = value
-                End Set
-            End Property
-
-            Public Property KeyBrake As PlayerKeys
-                Get
-                    Return _keyBrake
-                End Get
-                Set(value As PlayerKeys)
-                    _keyBrake = value
-                End Set
-            End Property
-
-            Public Property PropertiesLocked As Boolean
-                Get
-                    Return _propertiesLocked
-                End Get
-                Set(value As Boolean)
-                    _propertiesLocked = value
-                End Set
-            End Property
         End Structure
 
-        Friend P1 As PlayerControls
-        Friend P2 As PlayerControls
 
     End Structure
 
@@ -207,6 +136,12 @@ Public Class MainForm
 
     Dim MyPlayers As PlayerInfoClass
 
+
+    Private Sub MyPlayersTest()
+        MyPlayers.P1.KeyAccel.CurValue = 8
+
+
+    End Sub
 
 
     Private Sub UpdateDebugDisplay()
@@ -228,32 +163,32 @@ Public Class MainForm
         ' Player 1 default controls
         With MyPlayers.P1
             .KeyAccel.DefaultValue = Keys.W
-            .KeyAccel.Value = Keys.W
+            .keyAccel.CurValue = Keys.W
             .KeyAccel.IsDown = False
             .KeyBrake.DefaultValue = Keys.S
-            .KeyBrake.Value = Keys.S
+            .KeyBrake.CurValue = Keys.S
             .KeyBrake.IsDown = False
             .KeyMoveLeft.DefaultValue = Keys.A
-            .KeyMoveLeft.Value = Keys.A
+            .KeyMoveLeft.CurValue = Keys.A
             .KeyMoveLeft.IsDown = False
             .KeyMoveRight.DefaultValue = Keys.D
-            .KeyMoveRight.Value = Keys.D
+            .KeyMoveRight.CurValue = Keys.D
             .KeyMoveRight.IsDown = False
         End With
 
         ' Player 2 default controls
         With MyPlayers.P2
             .KeyAccel.DefaultValue = Keys.Up
-            .KeyAccel.Value = Keys.Up
+            .KeyAccel.CurValue = Keys.Up
             .KeyAccel.IsDown = False
             .KeyBrake.DefaultValue = Keys.Down
-            .KeyBrake.Value = Keys.Down
+            .KeyBrake.CurValue = Keys.Down
             .KeyBrake.IsDown = False
             .KeyMoveLeft.DefaultValue = Keys.Left
-            .KeyMoveLeft.Value = Keys.Left
+            .KeyMoveLeft.CurValue = Keys.Left
             .KeyMoveLeft.IsDown = False
             .KeyMoveRight.DefaultValue = Keys.Right
-            .KeyMoveRight.Value = Keys.Right
+            .KeyMoveRight.CurValue = Keys.Right
             .KeyMoveRight.IsDown = False
         End With
 
@@ -264,25 +199,34 @@ Public Class MainForm
 
         ' Player 1 
         With MyPlayers.P1
-            .Ppx1 = 3.01
-
+            .keyAccel.DefaultValue = Keys.W
+            .keyAccel.CurValue = Keys.W
+            .keyAccel.IsDown = False
+            .keyBrake.DefaultValue = Keys.S
+            .keyBrake.CurValue = Keys.S
+            .keyBrake.IsDown = False
+            .keyMoveLeft.DefaultValue = Keys.A
+            .keyMoveLeft.CurValue = Keys.A
+            .keyMoveLeft.IsDown = False
+            .keyMoveRight.DefaultValue = Keys.D
+            .keyMoveRight.CurValue = Keys.D
+            .keyMoveRight.IsDown = False
         End With
 
-        MsgBox(MyPlayers.P1.Ppx1)
 
         ' Player 2 
         With MyPlayers.P2
             .KeyAccel.DefaultValue = Keys.Up
-            .KeyAccel.Value = Keys.Up
+            .keyAccel.CurValue = Keys.Up
             .KeyAccel.IsDown = False
             .KeyBrake.DefaultValue = Keys.Down
-            .KeyBrake.Value = Keys.Down
+            .keyBrake.CurValue = Keys.Down
             .KeyBrake.IsDown = False
             .KeyMoveLeft.DefaultValue = Keys.Left
-            .KeyMoveLeft.Value = Keys.Left
+            .keyMoveLeft.CurValue = Keys.Left
             .KeyMoveLeft.IsDown = False
             .KeyMoveRight.DefaultValue = Keys.Right
-            .KeyMoveRight.Value = Keys.Right
+            .keyMoveRight.CurValue = Keys.Right
             .KeyMoveRight.IsDown = False
         End With
     End Sub
@@ -417,15 +361,15 @@ Public Class MainForm
 
         ' Set the appropriate property to true when the corresponding key is pressed
         ' Player 1
-        If e.KeyCode = MyPlayers.P1.KeyAccel.Value Then MyPlayers.P1.KeyAccel.isDown = True
-        If e.KeyCode = MyPlayers.P1.KeyBrake.Value Then MyPlayers.P1.KeyBrake.isDown = True
-        If e.KeyCode = MyPlayers.P1.KeyMoveLeft.Value Then MyPlayers.P1.KeyMoveLeft.isDown = True
-        If e.KeyCode = MyPlayers.P1.KeyMoveRight.Value Then MyPlayers.P1.KeyMoveRight.isDown = True
+        If e.KeyCode = MyPlayers.P1.keyAccel.CurValue Then MyPlayers.P1.keyAccel.IsDown = True
+        If e.KeyCode = MyPlayers.P1.keyBrake.CurValue Then MyPlayers.P1.keyBrake.IsDown = True
+        If e.KeyCode = MyPlayers.P1.keyMoveLeft.CurValue Then MyPlayers.P1.keyMoveLeft.IsDown = True
+        If e.KeyCode = MyPlayers.P1.keyMoveRight.CurValue Then MyPlayers.P1.keyMoveRight.IsDown = True
         ' Player 2
-        If e.KeyCode = MyPlayers.P2.KeyAccel.Value Then MyPlayers.P2.KeyAccel.isDown = True
-        If e.KeyCode = MyPlayers.P2.KeyBrake.Value Then MyPlayers.P2.KeyBrake.isDown = True
-        If e.KeyCode = MyPlayers.P2.KeyMoveLeft.Value Then MyPlayers.P2.KeyMoveLeft.isDown = True
-        If e.KeyCode = MyPlayers.P2.KeyMoveRight.Value Then MyPlayers.P2.KeyMoveRight.isDown = True
+        If e.KeyCode = MyPlayers.P2.keyAccel.CurValue Then MyPlayers.P2.keyAccel.IsDown = True
+        If e.KeyCode = MyPlayers.P2.keyBrake.CurValue Then MyPlayers.P2.keyBrake.IsDown = True
+        If e.KeyCode = MyPlayers.P2.keyMoveLeft.CurValue Then MyPlayers.P2.keyMoveLeft.IsDown = True
+        If e.KeyCode = MyPlayers.P2.keyMoveRight.CurValue Then MyPlayers.P2.keyMoveRight.IsDown = True
 
 
 
@@ -445,15 +389,15 @@ Public Class MainForm
 
         ' Set the appropriate property to false when the corresponding key is released
         ' Player 1
-        If e.KeyCode = MyPlayers.P1.KeyAccel.Value Then MyPlayers.P1.KeyAccel.isDown = False
-        If e.KeyCode = MyPlayers.P1.KeyBrake.Value Then MyPlayers.P1.KeyBrake.isDown = False
-        If e.KeyCode = MyPlayers.P1.KeyMoveLeft.Value Then MyPlayers.P1.KeyMoveLeft.isDown = False
-        If e.KeyCode = MyPlayers.P1.KeyMoveRight.Value Then MyPlayers.P1.KeyMoveRight.isDown = False
+        If e.KeyCode = MyPlayers.P1.keyAccel.CurValue Then MyPlayers.P1.keyAccel.IsDown = False
+        If e.KeyCode = MyPlayers.P1.keyBrake.CurValue Then MyPlayers.P1.keyBrake.IsDown = False
+        If e.KeyCode = MyPlayers.P1.keyMoveLeft.CurValue Then MyPlayers.P1.keyMoveLeft.IsDown = False
+        If e.KeyCode = MyPlayers.P1.keyMoveRight.CurValue Then MyPlayers.P1.keyMoveRight.IsDown = False
         ' Player 2
-        If e.KeyCode = MyPlayers.P2.KeyAccel.Value Then MyPlayers.P2.KeyAccel.isDown = False
-        If e.KeyCode = MyPlayers.P2.KeyBrake.Value Then MyPlayers.P2.KeyBrake.isDown = False
-        If e.KeyCode = MyPlayers.P2.KeyMoveLeft.Value Then MyPlayers.P2.KeyMoveLeft.isDown = False
-        If e.KeyCode = MyPlayers.P2.KeyMoveRight.Value Then MyPlayers.P2.KeyMoveRight.isDown = False
+        If e.KeyCode = MyPlayers.P2.keyAccel.CurValue Then MyPlayers.P2.keyAccel.IsDown = False
+        If e.KeyCode = MyPlayers.P2.keyBrake.CurValue Then MyPlayers.P2.keyBrake.IsDown = False
+        If e.KeyCode = MyPlayers.P2.keyMoveLeft.CurValue Then MyPlayers.P2.keyMoveLeft.IsDown = False
+        If e.KeyCode = MyPlayers.P2.keyMoveRight.CurValue Then MyPlayers.P2.keyMoveRight.IsDown = False
 
     End Sub
 
