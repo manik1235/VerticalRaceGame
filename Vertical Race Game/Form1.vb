@@ -210,6 +210,11 @@ Public Class MainForm
             TickCounter = 0
         End If
 
+        ' Adjust Accel & Velocity based on if the accelerator is down
+        ' Might be helpful to be dependant on the TickCounter, not sure
+        AdjustAcceleration()
+
+
         ' Move the tracks down every tick, if the car is accelerating.
         ' Also move the relative car up the same amount.
         MoveMyTracksRoot()
@@ -228,6 +233,11 @@ Public Class MainForm
         UpdateDisplayedTrackPositions()
 
 
+    End Sub
+
+    Private Sub AdjustAcceleration()
+        ' Adjust the Velocity 
+        Throw New NotImplementedException()
     End Sub
 
     Private Sub UpdateDebugDisplay()
