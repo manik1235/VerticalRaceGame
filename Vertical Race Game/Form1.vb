@@ -2,28 +2,8 @@
 
 Public Class MainForm
 
-    '    Structure PlayerKeys
-    '    Dim IsDown As Boolean ' True when the assigned key is pressed down
-    '    Dim DefaultValue As Integer ' The default value of the key
-    '    Dim CurValue As Integer ' The currently assigned key to watch for
-    '    End Structure
-    '
-    '    Interface IPlayerControls
-    '    ' Another interface..........
-    '    Property KeyMoveLeft As PlayerKeys
-    '    Property KeyMoveRight As PlayerKeys
-    '    Property KeyAccel As PlayerKeys
-    '    Property KeyBrake As PlayerKeys
-    '    End Interface
-    '
-    '    Interface IPlayerKeys
-    '    ' Interface that defines the player controls.
-    '    ' Right now:
-    '    ' keyMoveLeft
-    '    ' keyMoveRight
-    '    End Interface
 
-    Structure PlayerInfoClass
+    Structure PlayerInfoStructure
         Dim P1 As PlayerControls
         Dim P2 As PlayerControls
 
@@ -34,6 +14,11 @@ Public Class MainForm
             Dim keyBrake As PlayerKeys
             Dim PrimaryCarPictureBox As PictureBox
             Dim RelativeCarPictureBox As PictureBox
+            Dim TrackPictureBox As PictureBox
+
+
+
+
             Private _primaryCarImage As Image
             Private _maxA As Double ' Max Acceleration allowed, same units as above
             Private _v As Double ' Current Velocity (probably in pixels/tick ?)
@@ -41,7 +26,7 @@ Public Class MainForm
             Private _x As Double ' Current x (horz) position of the player vehicle
             Private _dx As Double ' Amount to change the x position for each tick
             Private _rx As Double ' Current x (horz) position of the player vehicle relative to the track segment
-            Private _y As Double ' Current y (vert) position of the player vehicle relative to the track segment
+            Private _y As Double ' Current y (vert) position of the player vehicle
             Private _ry As Double ' Current y (vert) position of the player vehicle relative to the track segment
             Private _maxV As Double ' Max Velocity allowed, same units as above
             Structure PlayerKeys
@@ -172,21 +157,82 @@ Public Class MainForm
 
     End Structure
 
-    Dim TickCounter As Integer
+    Structure TrackInfoStructure
+        ' This structure defines the MyTracks variable
+        ' This layer allows for the Left and Right (and more if desired) tracks
 
-    Dim PreviewKeyDownCounter As Integer
-    Dim KeyDownCounter As Integer
-    Dim KeyPressCounter As Integer
-    Dim KeyUpCounter As Integer
+        Dim LeftTrack As TrackControls ' Holds data for the Left Track (Player 1)
+        Dim RightTrack As TrackControls ' Holds data for the Right Track (Player 2)
 
-    Dim MyPlayers As PlayerInfoClass
+        Structure TrackControls
+            ' This structure supports the Left and Right track items.
+            ' This layer allows for the separation into the different track segment picture boxes.
+            ' Used to create smooth, continous track movement.
+
+            Dim A As TrackControlsAB ' Holds the info for Track segment A
+            Dim B As TrackControlsAB ' HOlds the info for Track segment B
+
+            ' These variables Hold border layer data
+            Dim BorderHeight As Integer ' Holds the height of the container panel for these track sections
+
+            Structure TrackControlsAB
+                ' Holds the deepest level data for the track segments
+                Dim Top As Integer ' Holds the y value (top) for the Track A/B 
+                Dim Height As Integer ' Holds the height of the Picturebox track section
 
 
+            End Structure
+
+        End Structure
+    End Structure
+
+    Dim TickCounter As Integer ' Counts the ticks (right now from 0 to 999)
+
+    ' Various Debug Counters
+    Dim DbgPreviewKeyDownCounter As Integer
+    Dim DbgKeyDownCounter As Integer
+    Dim DbgKeyPressCounter As Integer
+    Dim DbgKeyUpCounter As Integer
+
+    Dim MyPlayers As PlayerInfoStructure ' Holds the information for the Player and car structures
+
+    Dim MyTracks As TrackInfoStructure ' Holds the information for the Track structures
+
+    Private Sub TrackTimer_Tick(sender As Object, e As EventArgs) Handles TrackTimer.Tick
+
+        ' Display the debug info for player keypresses
+        UpdateDebugDisplay()
+
+        ' Increase the tick counter, restart if at 1000. This allows things to happen less finely grained
+        If TickCounter < 999 Then
+            TickCounter += 1
+        Else
+            TickCounter = 0
+        End If
+
+        ' Move the tracks down every tick, if the car is accelerating.
+        ' Also move the relative car up the same amount.
+        MoveMyTracksRoot()
+
+        ' Move the cars left or right as determined by the currently pressed keys
+        MoveRaceCarPositions()
+
+        ' Relocate Tracks A or B if they move below the panel's border
+        RelocateDisplayedTrackSegments()
+
+        ' Update Display
+        ' After all the above calculations are complete, move the display elements to the correct places
+        UpdateDisplayedCarPositions()
+
+        ' Update the track display
+        UpdateDisplayedTrackPositions()
 
 
+    End Sub
 
     Private Sub UpdateDebugDisplay()
         ' Player1
+
         'Label8.Text = MyPlayers.P1.keyAccel.IsDown
         'Label7.Text = MyPlayers.P1.keyBrake.IsDown
         'Label6.Text = MyPlayers.P1.keyMoveLeft.IsDown
@@ -205,6 +251,218 @@ Public Class MainForm
 
         ' Where do I want it? To move opposite the velocity of my track.
         ' How fast is my track moving? Add it in there. Add RelativeCarMove
+
+    End Sub
+
+    Private Sub UpdateDisplayedTrackPositions()
+        ' move the picture boxes to the positions indicated in the Track structure
+        ' Left Track (Player 1's view)
+        LeftTrackPictureBoxA.Top = MyTracks.LeftTrack.A.Top
+        LeftTrackPictureBoxB.Top = MyTracks.LeftTrack.B.Top
+
+
+        ' Right Track (Player 2's view)
+        RightTrackPictureBoxA.Top = MyTracks.RightTrack.A.Top
+        RightTrackPictureBoxB.Top = MyTracks.RightTrack.B.Top
+
+
+    End Sub
+
+    Private Sub UpdateDisplayedCarPositions()
+        ' Adjust the Picture Boxes that hold the car items to the new values.
+
+        ' Primary Car
+        ' Player 1
+        MyPlayers.P1.PrimaryCarPictureBox.Left = MyPlayers.P1.X
+
+        ' Player 2
+        MyPlayers.P2.PrimaryCarPictureBox.Left = MyPlayers.P2.X
+
+        ' Relative Car
+        ' Player 1
+        MyPlayers.P1.RelativeCarPictureBox.Left = MyPlayers.P1.X
+        MyPlayers.P1.RelativeCarPictureBox.Top = MyPlayers.P1.Ry
+
+        ' Player 2
+        MyPlayers.P2.RelativeCarPictureBox.Left = MyPlayers.P2.X
+        MyPlayers.P2.RelativeCarPictureBox.Top = MyPlayers.P2.Ry
+
+    End Sub
+
+    Private Sub MoveRaceCarPositions()
+        ' Move the player cars left or right based on the keys currently pressed
+
+        'Player 1
+        With MyPlayers.P1
+            If .keyMoveLeft.IsDown Then
+                'Moving left is held down, so move left
+                .X -= .Dx
+            ElseIf .keyMoveRight.IsDown Then
+                ' Moving right is held down, so move right
+                .X += .Dx
+            End If
+        End With
+
+
+        'Player 2
+        With MyPlayers.P2
+            If .keyMoveLeft.IsDown Then
+                'Moving left is held down, so move left
+                .X -= .Dx
+            ElseIf .keyMoveRight.IsDown Then
+                ' Moving right is held down, so move right
+                .X += .Dx
+            End If
+        End With
+
+        ';' Move relative car
+        ';' Player 1
+        'MyPlayers.P1.Ry = LeftTrackPictureBoxA.Top - MyPlayers.P1.Y
+
+    End Sub
+
+    Private Sub MoveMyTracksRoot()
+        ' Move the tracks down every tick, if the car is accelerating.
+        ' Also move the relative car forward the same amount
+        ' Tracks move directly, car moves indirectly
+        ' When the other track moves, move the relative car 
+
+        ' Cars Are Accelerating
+        ' Player 1
+        If MyPlayers.P1.keyAccel.IsDown Then
+            If TickCounter Mod 1 = 0 Then ' Allows modification based on the TickCounter. Not yet used (hence Mod 1)
+                MyTracks.LeftTrack.A.Top += MyPlayers.P1.V ' Move the track based on the current player's velocity
+                MyTracks.LeftTrack.B.Top += MyPlayers.P1.V ' Move the track based on the current player's velocity
+                'Move the relative car of player 2 down with the track on this side
+                MyPlayers.P2.Ry += MyPlayers.P1.V ' Move the relative car based on the velocity
+                MyPlayers.P1.Ry -= MyPlayers.P1.V ' Move the relative car based on the velocity
+            End If
+        End If
+
+        ' Player 2
+        If MyPlayers.P2.keyAccel.IsDown Then
+            If TickCounter Mod 1 = 0 Then ' Allows modification based on the TickCounter. Not yet used (hence Mod 1)
+                MyTracks.RightTrack.A.Top += MyPlayers.P2.V ' Move the track based on the current player's velocity
+                MyTracks.RightTrack.B.Top += MyPlayers.P2.V ' Move the track based on the current player's velocity
+                ' Move the relative cars
+                MyPlayers.P2.Ry -= MyPlayers.P2.V ' Move the relative car closer to the top by the same amount.
+                MyPlayers.P1.Ry += MyPlayers.P2.V ' Move the relative car based on the velocity
+            End If
+        End If
+
+        ' Cars Are Braking (Reversing)
+        ' Player 1
+        If MyPlayers.P1.keyBrake.IsDown Then
+            If TickCounter Mod 1 = 0 Then ' Allows modification based on the TickCounter. Not yet used (hence Mod 1)
+                MyTracks.LeftTrack.A.Top += -MyPlayers.P1.V ' Move the track based on the current player's velocity
+                MyTracks.LeftTrack.B.Top += -MyPlayers.P1.V ' Move the track based on the current player's velocity
+                'Move the relative car of player 2 down with the track on this side
+                MyPlayers.P2.Ry += -MyPlayers.P1.V ' Move the relative car based on the velocity
+                MyPlayers.P1.Ry -= -MyPlayers.P1.V ' Move the relative car based on the velocity
+            End If
+        End If
+
+        ' Player 2
+        If MyPlayers.P2.keyBrake.IsDown Then
+            If TickCounter Mod 1 = 0 Then ' Allows modification based on the TickCounter. Not yet used (hence Mod 1)
+                MyTracks.RightTrack.A.Top += -MyPlayers.P2.V ' Move the track based on the current player's velocity
+                MyTracks.RightTrack.B.Top += -MyPlayers.P2.V ' Move the track based on the current player's velocity
+                ' move the relative car of player 1 down with the track on this side
+                MyPlayers.P2.Ry -= -MyPlayers.P2.V ' Move the relative car closer to the top by the same amount.
+                MyPlayers.P1.Ry += -MyPlayers.P2.V ' Move the relative car based on the velocity
+            End If
+        End If
+    End Sub
+
+    Private Sub RelocateDisplayedTrackSegments()
+        ' Relocate Tracks A or B if they move below the panel's border
+        ' Indirectly thru the Track structure
+
+        ' Left Track
+        If MyTracks.LeftTrack.A.Top > MyTracks.LeftTrack.BorderHeight Then ' if Track Section A moves below the visible panel, relocate it to be above Section B
+            MyTracks.LeftTrack.A.Top = MyTracks.LeftTrack.B.Top - MyTracks.LeftTrack.A.Height
+        End If
+        If MyTracks.LeftTrack.B.Top > MyTracks.LeftTrack.BorderHeight Then ' If Track section  B moves below the visible panel, relocate it above Section A
+            MyTracks.LeftTrack.B.Top = MyTracks.LeftTrack.A.Top - MyTracks.LeftTrack.B.Height
+        End If
+
+        ' Right Track
+        If MyTracks.RightTrack.A.Top > MyTracks.RightTrack.BorderHeight Then ' if Track Section A moves below the visible panel, relocate it to be above Section B
+            MyTracks.RightTrack.A.Top = MyTracks.RightTrack.B.Top - MyTracks.RightTrack.A.Height
+        End If
+        If MyTracks.RightTrack.B.Top > MyTracks.RightTrack.BorderHeight Then ' If Track section  B moves below the visible panel, relocate it above Section A
+            MyTracks.RightTrack.B.Top = MyTracks.RightTrack.A.Top - MyTracks.RightTrack.B.Height
+        End If
+
+
+        ' This one works with the direct movement method, not indirect
+        '        ' Left Track
+        '        If LeftTrackPictureBoxA.Top > LeftRaceBackgroundPanel.Height Then
+        '        LeftTrackPictureBoxA.Top = LeftTrackPictureBoxB.Top - LeftTrackPictureBoxA.Height
+        '        End If
+        '        If LeftTrackPictureBoxB.Top > LeftRaceBackgroundPanel.Height Then
+        '        LeftTrackPictureBoxB.Top = LeftTrackPictureBoxA.Top - LeftTrackPictureBoxB.Height
+        '        End If
+        '
+        '        ' Right Track
+        '        If RightTrackPictureBoxA.Top > RightRaceBackgroundPanel.Height Then
+        '        RightTrackPictureBoxA.Top = RightTrackPictureBoxB.Top - RightTrackPictureBoxA.Height
+        '        End If
+        '        If RightTrackPictureBoxB.Top > RightRaceBackgroundPanel.Height Then
+        '        RightTrackPictureBoxB.Top = RightTrackPictureBoxA.Top - RightTrackPictureBoxB.Height
+        '        End If
+    End Sub
+
+    Private Sub MoveTrack(Track As PictureBox, VSpeed As Integer)
+        ' Move the track based on the car's movement speed
+        Track.Location = New Point(Track.Left, Track.Top + VSpeed)
+    End Sub
+
+    Private Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        ' Initialize everything
+        InitializeEverything()
+    End Sub
+
+    Private Sub InitializeEverything()
+
+        ' This section needs to be updated to do it more programmatically, probably
+        ' Set Track A and B to the appropriate spots relative to each other
+        ' Left Track
+        With LeftTrackPictureBoxA
+            .Left = 3
+            .Top = LeftRaceBackgroundPanel.Height - .Height
+        End With
+        With LeftTrackPictureBoxB
+            .Left = 3
+            .Top = LeftTrackPictureBoxA.Top - .Height
+        End With
+
+        ' Right Track
+        With RightTrackPictureBoxA
+            .Left = 3
+            .Top = RightRaceBackgroundPanel.Height - .Height
+        End With
+        With RightTrackPictureBoxB
+            .Left = 3
+            .Top = RightTrackPictureBoxA.Top - .Height
+        End With
+
+
+        ' Initialize the default keyboard control settings
+        InitializeKeyboardSettings()
+
+        ' Initialize the player settings
+        InitializePlayerSettings()
+
+        ' Initialize Track Settings
+        InitializeTrackSettings()
+
+        ' Initialize the Counters
+        DbgKeyPressCounter = 0
+        DbgKeyDownCounter = 0
+        DbgKeyUpCounter = 0
+        TickCounter = 0
+
 
     End Sub
 
@@ -315,194 +573,47 @@ Public Class MainForm
         End With
     End Sub
 
-    Private Sub TrackTimer_Tick(sender As Object, e As EventArgs) Handles TrackTimer.Tick
-
-        ' Display the debug info for player keypresses
-        UpdateDebugDisplay()
-
-
-
-        ' Increase the tick counter, restart if at 1000. This allows things to happen less finely grained
-        If TickCounter < 999 Then
-            TickCounter += 1
-        Else
-            TickCounter = 0
-        End If
-
-        ' Move the tracks down every tick, if the car is accelerating.
-        ' Also move the relative car up the same amount.
-        MoveTrackRoot()
-
-        ' Move the cars left or right as determined by the currently pressed keys
-        MoveRaceCars()
-
-        ' Relocate Tracks A or B if they move below the panel's border
-        UpdateDisplayedTrackSegments()
-
-        ' Update Display
-        ' After all the above calculations are complete, move the display elements to the correct places
-        UpdateDisplayedCarPositions()
-
-    End Sub
-
-    Private Sub UpdateDisplayedCarPositions()
-        ' Adjust the Picture Boxes that hold the car items to the new values.
-
-        ' Primary Car
-        ' Player 1
-        MyPlayers.P1.PrimaryCarPictureBox.Left = MyPlayers.P1.X
-
-        ' Player 2
-        MyPlayers.P2.PrimaryCarPictureBox.Left = MyPlayers.P2.X
-
-        ' Relative Car
-        ' Player 1
-        MyPlayers.P1.RelativeCarPictureBox.Left = MyPlayers.P1.X
-        MyPlayers.P1.RelativeCarPictureBox.Top = MyPlayers.P1.Ry
-
-        ' Player 2
-        MyPlayers.P2.RelativeCarPictureBox.Left = MyPlayers.P2.X
-        MyPlayers.P2.RelativeCarPictureBox.Top = MyPlayers.P2.Ry
-
-    End Sub
-
-    Private Sub MoveRaceCars()
-        ' Move the player cars left or right based on the keys currently pressed
-
-        'Player 1
-        With MyPlayers.P1
-            If .keyMoveLeft.IsDown Then
-                'Moving left is held down, so move left
-                .X -= .Dx
-            ElseIf .keyMoveRight.IsDown Then
-                ' Moving right is held down, so move right
-                .X += .Dx
-            End If
-        End With
-
-
-        'Player 2
-        With MyPlayers.P2
-            If .keyMoveLeft.IsDown Then
-                'Moving left is held down, so move left
-                .X -= .Dx
-            ElseIf .keyMoveRight.IsDown Then
-                ' Moving right is held down, so move right
-                .X += .Dx
-            End If
-        End With
-
-        ' Move relative car
-        ' Player 1
-        MyPlayers.P1.Ry = LeftTrackPictureBoxA.Top - MyPlayers.P1.Y
-
-    End Sub
-
-    Private Sub MoveTrackRoot()
-        ' Move the tracks down every tick, if the car is accelerating.
-        ' Also move the relative car forward the same amount
-        ' Tracks move directly, car moves indirectly
-        ' When the other track moves, move the relative car 
-
-        If MyPlayers.P1.keyAccel.IsDown Then
-            If TickCounter Mod 1 = 0 Then
-                MoveTrack(LeftTrackPictureBoxB, MyPlayers.P1.V) ' Move B first to prevent the white line (hopefully). It'll probably be in the other spot now, darn
-                MoveTrack(LeftTrackPictureBoxA, MyPlayers.P1.V) ' Move the tracks down by the current velocity.
-                'MyPlayers.P1.RelativeCarPictureBox.Top -= MyPlayers.P1.V
-                ''MoveRelativeCar(MyPlayers.P1.RelativeCarPictureBox, MyPlayers.P1.V) ' Move the relative car forward
-                'Move the relative car of player 2 down with the track on this side
-                MyPlayers.P2.Ry += MyPlayers.P1.V
-            End If
-        End If
-
-        If MyPlayers.P2.keyAccel.IsDown Then
-            If TickCounter Mod 1 = 0 Then
-                MoveTrack(RightTrackPictureBoxA, MyPlayers.P2.V)
-                MoveTrack(RightTrackPictureBoxB, MyPlayers.P2.V)
-                MyPlayers.P2.Ry -= MyPlayers.P2.V ' Move the relative car closer to the top by the same amount.
-            End If
-        End If
-    End Sub
-
-    Private Sub UpdateDisplayedTrackSegments()
-        ' Relocate Tracks A or B if they move below the panel's border
+    Private Sub InitializeTrackSettings()
+        ' This section sets the defaults for the track elements
 
         ' Left Track
-        If LeftTrackPictureBoxA.Top > LeftRaceBackgroundPanel.Height Then
-            LeftTrackPictureBoxA.Top = LeftTrackPictureBoxB.Top - LeftTrackPictureBoxA.Height
-        End If
-        If LeftTrackPictureBoxB.Top > LeftRaceBackgroundPanel.Height Then
-            LeftTrackPictureBoxB.Top = LeftTrackPictureBoxA.Top - LeftTrackPictureBoxB.Height
-        End If
-
-        ' Right Track
-        If RightTrackPictureBoxA.Top > RightRaceBackgroundPanel.Height Then
-            RightTrackPictureBoxA.Top = RightTrackPictureBoxB.Top - RightTrackPictureBoxA.Height
-        End If
-        If RightTrackPictureBoxB.Top > RightRaceBackgroundPanel.Height Then
-            RightTrackPictureBoxB.Top = RightTrackPictureBoxA.Top - RightTrackPictureBoxB.Height
-        End If
-    End Sub
-
-    Private Sub MoveTrack(Track As PictureBox, VSpeed As Integer)
-        ' Move the track based on the car's movement speed
-        Track.Location = New Point(Track.Left, Track.Top + VSpeed)
-    End Sub
-
-    Private Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        ' Initialize everything
-        InitializeEverything()
-    End Sub
-
-    Private Sub InitializeEverything()
-
-        ' Initialize the default keyboard control settings
-        InitializeKeyboardSettings()
-
-        ' Initialize the player settings
-        InitializePlayerSettings()
-
-        ' Initialize the Counters
-        KeyPressCounter = 0
-        KeyDownCounter = 0
-        KeyUpCounter = 0
-        TickCounter = 0
-
-        ' Set Track A and B to the appropriate spots relative to each other
-        ' Left Track
-        With LeftTrackPictureBoxA
-            .Left = 3
-            .Top = LeftRaceBackgroundPanel.Height - .Height
-        End With
-        With LeftTrackPictureBoxB
-            .Left = 3
-            .Top = LeftTrackPictureBoxA.Top - .Height
+        With MyTracks.LeftTrack
+            .BorderHeight = LeftRaceBackgroundPanel.Height ' The border height defaults to the container panel's height
+            With .A
+                .Height = LeftTrackPictureBoxA.Height ' the track segment height defaults to the size of the picturebox
+                .Top = LeftTrackPictureBoxA.Top ' the track segment top position defaults to the picture box top position
+            End With
+            With .B
+                .Height = LeftTrackPictureBoxB.Height
+                .Top = LeftTrackPictureBoxB.Top
+            End With
         End With
 
         ' Right Track
-        With RightTrackPictureBoxA
-            .Left = 3
-            .Top = RightRaceBackgroundPanel.Height - .Height
-        End With
-        With RightTrackPictureBoxB
-            .Left = 3
-            .Top = RightTrackPictureBoxA.Top - .Height
+        With MyTracks.RightTrack
+            .BorderHeight = RightRaceBackgroundPanel.Height
+            With .A
+                .Height = RightTrackPictureBoxA.Height
+                .Top = RightTrackPictureBoxA.Top
+            End With
+            With .B
+                .Height = RightTrackPictureBoxB.Height
+                .Top = RightTrackPictureBoxB.Top
+            End With
         End With
     End Sub
-
-
 
     Private Sub MainForm_PreviewKeyDown(sender As Object, e As PreviewKeyDownEventArgs) Handles MyBase.PreviewKeyDown
-        PreviewKeyDownCounter += 1
+        DbgPreviewKeyDownCounter += 1
         'e.IsInputKey = True
-        Label1.Text = "PreviewKeyDown: " & PreviewKeyDownCounter & " IsInputKey: " & e.IsInputKey & " KeyCode: " & e.KeyCode & " KeyData: " & e.KeyData & " KeyValue: " & e.KeyValue
+        Label1.Text = "PreviewKeyDown: " & DbgPreviewKeyDownCounter & " IsInputKey: " & e.IsInputKey & " KeyCode: " & e.KeyCode & " KeyData: " & e.KeyData & " KeyValue: " & e.KeyValue
 
     End Sub
 
     Private Sub MainForm_KeyDown(sender As Object, e As KeyEventArgs) Handles MyBase.KeyDown
-        KeyDownCounter += 1
+        DbgKeyDownCounter += 1
         e.Handled = True
-        Label2.Text = "KeyDown: " & KeyDownCounter & " Handled: " & e.Handled & " KeyCode: " & e.KeyCode & " KeyData: " & e.KeyData & " KeyValue: " & e.KeyValue
+        Label2.Text = "KeyDown: " & DbgKeyDownCounter & " Handled: " & e.Handled & " KeyCode: " & e.KeyCode & " KeyData: " & e.KeyData & " KeyValue: " & e.KeyValue
         ' This module gets much more of the key presses, including arrows. it also gets repeated when a key is held down.
 
         'KeyCode is the best to use (instead of KeyData or KeyValue) per msdn forums
@@ -526,14 +637,14 @@ Public Class MainForm
     End Sub
 
     Private Sub MainForm_KeyPress(sender As Object, e As KeyPressEventArgs) Handles MyBase.KeyPress
-        KeyPressCounter += 1
-        Label3.Text = "KeyPress: " & KeyPressCounter & " KeyChar: " & e.KeyChar & " " & " Handled: " & e.Handled
+        DbgKeyPressCounter += 1
+        Label3.Text = "KeyPress: " & DbgKeyPressCounter & " KeyChar: " & e.KeyChar & " " & " Handled: " & e.Handled
 
     End Sub
 
     Private Sub MainForm_KeyUp(sender As Object, e As KeyEventArgs) Handles MyBase.KeyUp
-        KeyUpCounter += 1
-        Label4.Text = "KeyUp: " & KeyUpCounter & " Handled: " & e.Handled & " KeyCode: " & e.KeyCode & " KeyData: " & e.KeyData & " KeyValue: " & e.KeyValue
+        DbgKeyUpCounter += 1
+        Label4.Text = "KeyUp: " & DbgKeyUpCounter & " Handled: " & e.Handled & " KeyCode: " & e.KeyCode & " KeyData: " & e.KeyData & " KeyValue: " & e.KeyValue
 
         ' Set the appropriate property to false when the corresponding key is released
         ' Player 1
