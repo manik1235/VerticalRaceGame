@@ -16,19 +16,50 @@ Public Class MainForm
             Dim RelativeCarPictureBox As PictureBox
             Dim TrackPictureBox As PictureBox
 
+            Dim AFriction As Integer ' Acceleration due to friction
 
+            Dim Da As Integer ' The amount the acceleration changes per tick when the accelerator is pressed
 
+            Dim MinA As Integer
+            Dim MaxA As Integer ' Max Acceleration allowed, same units as above
+            Dim MinV As Integer
+            Dim MaxV As Integer ' Max Velocity allowed, same units as above
+            Dim ReverseV As Integer ' The Velocity to travel at when going backward. No accelarating on reversing right now, kinda like how Mario Kart feels
+            Dim primaryCarImage As Image
+            Private _v As Integer ' Current Velocity (probably in pixels/tick ?)
+            Private _a As Integer ' Current Acceleration (probably in pixels/tick^2 ?)
+            Dim x As Integer ' Current x (horz) position of the player vehicle
+            Dim dx As Integer ' Amount to change the x position for each tick
+            Dim rx As Integer ' Current x (horz) position of the player vehicle relative to the track segment
+            Dim y As Integer ' Current y (vert) position of the player vehicle
+            Dim ry As Integer ' Current y (vert) position of the player vehicle relative to the track segment
 
-            Private _primaryCarImage As Image
-            Private _maxA As Double ' Max Acceleration allowed, same units as above
-            Private _v As Double ' Current Velocity (probably in pixels/tick ?)
-            Private _a As Double ' Current Acceleration (probably in pixels/tick^2 ?)
-            Private _x As Double ' Current x (horz) position of the player vehicle
-            Private _dx As Double ' Amount to change the x position for each tick
-            Private _rx As Double ' Current x (horz) position of the player vehicle relative to the track segment
-            Private _y As Double ' Current y (vert) position of the player vehicle
-            Private _ry As Double ' Current y (vert) position of the player vehicle relative to the track segment
-            Private _maxV As Double ' Max Velocity allowed, same units as above
+            Public Property V As Integer
+                ' Set the sanity checks and boundry conditions for Velocity
+                Get
+                    Return _v
+                End Get
+                Set(value As Integer)
+                    ' Make sure the velocity trying to be set is between the Min and Max allowed
+                    If value < MinV Then value = MinV
+                    If value > maxV Then value = maxV
+                    _v = value
+                End Set
+            End Property
+
+            Public Property A As Integer
+                ' Set the sanity checks and boundry conditions for Acceleration
+                Get
+                    Return _a
+                End Get
+                Set(value As Integer)
+                    ' Make sure the velocity trying to be set is between the Min and Max allowed
+                    If value < MinA Then value = MinA
+                    If value > MaxA Then value = MaxA
+                    _a = value
+                End Set
+            End Property
+
             Structure PlayerKeys
                 Private _isDown As Boolean
                 Private _defaultValue As Integer
@@ -61,95 +92,7 @@ Public Class MainForm
                     End Set
                 End Property
             End Structure
-            Public Property MaxA As Double
-                Get
-                    Return _maxA
-                End Get
-                Set(value As Double)
-                    _maxA = value
-                End Set
-            End Property
 
-            Public Property V As Double
-                Get
-                    Return _v
-                End Get
-                Set(value As Double)
-                    _v = value
-                End Set
-            End Property
-
-            Public Property A As Double
-                Get
-                    Return _a
-                End Get
-                Set(value As Double)
-                    _a = value
-                End Set
-            End Property
-
-            Public Property X As Double
-                Get
-                    Return _x
-                End Get
-                Set(value As Double)
-                    _x = value
-                End Set
-            End Property
-
-            Public Property Rx As Double
-                Get
-                    Return _rx
-                End Get
-                Set(value As Double)
-                    _rx = value
-                End Set
-            End Property
-
-            Public Property Y As Double
-                Get
-                    Return _y
-                End Get
-                Set(value As Double)
-                    _y = value
-                End Set
-            End Property
-
-            Public Property Ry As Double
-                Get
-                    Return _ry
-                End Get
-                Set(value As Double)
-                    _ry = value
-                End Set
-            End Property
-
-            Public Property MaxV As Double
-                Get
-                    Return _maxV
-                End Get
-                Set(value As Double)
-                    _maxV = value
-                End Set
-            End Property
-
-            Public Property Dx As Double
-                Get
-                    Return _dx
-                End Get
-                Set(value As Double)
-                    _dx = value
-                End Set
-            End Property
-
-            Public Property PrimaryCarImage As Image
-                Get
-                    Return _primaryCarImage
-                End Get
-                Set(value As Image)
-                    _primaryCarImage = value
-                End Set
-            End Property
 
 
         End Structure
@@ -212,7 +155,7 @@ Public Class MainForm
 
         ' Adjust Accel & Velocity based on if the accelerator is down
         ' Might be helpful to be dependant on the TickCounter, not sure
-        AdjustAcceleration()
+        AdjustPhysics()
 
 
         ' Move the tracks down every tick, if the car is accelerating.
@@ -235,9 +178,61 @@ Public Class MainForm
 
     End Sub
 
-    Private Sub AdjustAcceleration()
+    Private Sub AdjustPhysics()
+
+        ' Adjust the acceleration
+
+        ' Player 1
+        If MyPlayers.P1.keyAccel.IsDown Then
+            'If they have the accelerate key down, increase the acceleration. If not, friction
+            MyPlayers.P1.A += MyPlayers.P1.Da
+        Else
+            ' Apply friction if they aren't accelerating
+            MyPlayers.P1.A += MyPlayers.P1.AFriction
+            If (MyPlayers.P1.V + MyPlayers.P1.A) < 0 Then 'compare what the new velocity will be after acceleration application
+                ' Don't allow friction to drop velocity lower than zero
+                MyPlayers.P1.A = 0
+                MyPlayers.P1.V = 0
+            End If
+        End If
+        ' Player 2
+        If MyPlayers.P2.keyAccel.IsDown Then
+            'If they have the accelerate key down, increase the acceleration. If not, friction
+            MyPlayers.P2.A += MyPlayers.P2.Da
+        Else
+            ' Apply friction if they aren't accelerating
+            MyPlayers.P2.A += MyPlayers.P2.AFriction
+            If (MyPlayers.P2.V + MyPlayers.P2.A) < 0 Then
+                ' Don't allow friction to drop velocity lower than zero
+                MyPlayers.P2.A = 0
+                MyPlayers.P2.V = 0
+            End If
+        End If
+
         ' Adjust the Velocity 
-        Throw New NotImplementedException()
+
+        ' Add the acceleration to the current velocity
+        ' Player 1
+        MyPlayers.P1.V += MyPlayers.P1.A
+
+        ' Player 2
+        MyPlayers.P2.V += MyPlayers.P2.A
+
+
+
+        ' and decrease it faster if braking
+
+        ' and reverse if you came to a stop
+        ' Player 1
+        If MyPlayers.P1.keyBrake.IsDown And MyPlayers.P1.V <= 0 Then 'Don't start reversing until the car has stopped.
+            MyPlayers.P1.V = MyPlayers.P1.ReverseV ' If reversing, just have constant Velocity. 
+        End If
+
+        ' Player 2
+        If MyPlayers.P2.keyBrake.IsDown And MyPlayers.P2.V <= 0 Then 'Don't start reversing until the car has stopped.
+            MyPlayers.P2.V = MyPlayers.P2.ReverseV ' If reversing, just have constant Velocity. 
+        End If
+
     End Sub
 
     Private Sub UpdateDebugDisplay()
@@ -332,56 +327,54 @@ Public Class MainForm
     End Sub
 
     Private Sub MoveMyTracksRoot()
-        ' Move the tracks down every tick, if the car is accelerating.
+        ' Move the tracks down every tick, if the car has velocity.
         ' Also move the relative car forward the same amount
         ' Tracks move directly, car moves indirectly
         ' When the other track moves, move the relative car 
 
-        ' Cars Are Accelerating
+        ' If the Cars have velocity, move them in that direction. Positive V goes forward (track goes down, car goes up)
         ' Player 1
-        If MyPlayers.P1.keyAccel.IsDown Then
-            If TickCounter Mod 1 = 0 Then ' Allows modification based on the TickCounter. Not yet used (hence Mod 1)
-                MyTracks.LeftTrack.A.Top += MyPlayers.P1.V ' Move the track based on the current player's velocity
-                MyTracks.LeftTrack.B.Top += MyPlayers.P1.V ' Move the track based on the current player's velocity
-                'Move the relative car of player 2 down with the track on this side
-                MyPlayers.P2.Ry += MyPlayers.P1.V ' Move the relative car based on the velocity
-                MyPlayers.P1.Ry -= MyPlayers.P1.V ' Move the relative car based on the velocity
-            End If
+        If TickCounter Mod 1 = 0 Then ' Allows modification based on the TickCounter. Not yet used (hence Mod 1)
+            MyTracks.LeftTrack.A.Top += MyPlayers.P1.V ' Move the track based on the current player's velocity
+            MyTracks.LeftTrack.B.Top += MyPlayers.P1.V ' Move the track based on the current player's velocity
+            'Move the relative car of player 2 down with the track on this side
+            MyPlayers.P2.Ry += MyPlayers.P1.V ' Move the relative car based on the velocity
+            MyPlayers.P1.Ry -= MyPlayers.P1.V ' Move the relative car based on the velocity
         End If
+
 
         ' Player 2
-        If MyPlayers.P2.keyAccel.IsDown Then
-            If TickCounter Mod 1 = 0 Then ' Allows modification based on the TickCounter. Not yet used (hence Mod 1)
-                MyTracks.RightTrack.A.Top += MyPlayers.P2.V ' Move the track based on the current player's velocity
-                MyTracks.RightTrack.B.Top += MyPlayers.P2.V ' Move the track based on the current player's velocity
-                ' Move the relative cars
-                MyPlayers.P2.Ry -= MyPlayers.P2.V ' Move the relative car closer to the top by the same amount.
-                MyPlayers.P1.Ry += MyPlayers.P2.V ' Move the relative car based on the velocity
-            End If
+        If TickCounter Mod 1 = 0 Then ' Allows modification based on the TickCounter. Not yet used (hence Mod 1)
+            MyTracks.RightTrack.A.Top += MyPlayers.P2.V ' Move the track based on the current player's velocity
+            MyTracks.RightTrack.B.Top += MyPlayers.P2.V ' Move the track based on the current player's velocity
+            ' Move the relative cars
+            MyPlayers.P2.Ry -= MyPlayers.P2.V ' Move the relative car closer to the top by the same amount.
+            MyPlayers.P1.Ry += MyPlayers.P2.V ' Move the relative car based on the velocity
         End If
 
-        ' Cars Are Braking (Reversing)
-        ' Player 1
-        If MyPlayers.P1.keyBrake.IsDown Then
-            If TickCounter Mod 1 = 0 Then ' Allows modification based on the TickCounter. Not yet used (hence Mod 1)
-                MyTracks.LeftTrack.A.Top += -MyPlayers.P1.V ' Move the track based on the current player's velocity
-                MyTracks.LeftTrack.B.Top += -MyPlayers.P1.V ' Move the track based on the current player's velocity
-                'Move the relative car of player 2 down with the track on this side
-                MyPlayers.P2.Ry += -MyPlayers.P1.V ' Move the relative car based on the velocity
-                MyPlayers.P1.Ry -= -MyPlayers.P1.V ' Move the relative car based on the velocity
-            End If
-        End If
 
-        ' Player 2
-        If MyPlayers.P2.keyBrake.IsDown Then
-            If TickCounter Mod 1 = 0 Then ' Allows modification based on the TickCounter. Not yet used (hence Mod 1)
-                MyTracks.RightTrack.A.Top += -MyPlayers.P2.V ' Move the track based on the current player's velocity
-                MyTracks.RightTrack.B.Top += -MyPlayers.P2.V ' Move the track based on the current player's velocity
-                ' move the relative car of player 1 down with the track on this side
-                MyPlayers.P2.Ry -= -MyPlayers.P2.V ' Move the relative car closer to the top by the same amount.
-                MyPlayers.P1.Ry += -MyPlayers.P2.V ' Move the relative car based on the velocity
-            End If
-        End If
+        '        ' Cars Are Braking (Reversing)
+        '        ' Player 1
+        '        If MyPlayers.P1.keyBrake.IsDown Then
+        '        If TickCounter Mod 1 = 0 Then ' Allows modification based on the TickCounter. Not yet used (hence Mod 1)
+        '        MyTracks.LeftTrack.A.Top += -MyPlayers.P1.V ' Move the track based on the current player's velocity
+        '        MyTracks.LeftTrack.B.Top += -MyPlayers.P1.V ' Move the track based on the current player's velocity
+        '        'Move the relative car of player 2 down with the track on this side
+        '        MyPlayers.P2.Ry += -MyPlayers.P1.V ' Move the relative car based on the velocity
+        '        MyPlayers.P1.Ry -= -MyPlayers.P1.V ' Move the relative car based on the velocity
+        '        End If
+        '        End If
+        '
+        '        ' Player 2
+        '        If MyPlayers.P2.keyBrake.IsDown Then
+        '        If TickCounter Mod 1 = 0 Then ' Allows modification based on the TickCounter. Not yet used (hence Mod 1)
+        '        MyTracks.RightTrack.A.Top += -MyPlayers.P2.V ' Move the track based on the current player's velocity
+        '        MyTracks.RightTrack.B.Top += -MyPlayers.P2.V ' Move the track based on the current player's velocity
+        '        ' move the relative car of player 1 down with the track on this side
+        '        MyPlayers.P2.Ry -= -MyPlayers.P2.V ' Move the relative car closer to the top by the same amount.
+        '       MyPlayers.P1.Ry += -MyPlayers.P2.V ' Move the relative car based on the velocity
+        '       End If
+        '       End If
     End Sub
 
     Private Sub RelocateDisplayedTrackSegments()
@@ -543,10 +536,22 @@ Public Class MainForm
             ' Initialize the image that goes with the player
             .PrimaryCarImage = LeftP1CarPictureBox.Image
             .RelativeCarPictureBox = RightP1CarPictureBox 'Set the Relative Picture box to the other picture box
-            .RelativeCarPictureBox.Image = .PrimaryCarImage 'Set the relative car image to the primary car image
+            .RelativeCarPictureBox.Image = .primaryCarImage 'Set the relative car image to the primary car image
 
-            ' Initialize the velocity as 1, because that's what it's doing right now
-            .V = 1
+            ' Initialize the velocity as 0, because they start by not moving
+            .V = 0
+            .MinV = -5 ' Set the min and max velocities. These will eventually be based on the vehicle selection
+            .MaxV = 5 ' Set the min and max velocities. These will eventually be based on the vehicle selection
+            .ReverseV = -2 'Speed at which to move backwards 
+
+            ' Initialize Acceleration
+            .A = 0
+            .MinA = -5 ' Set the min and max velocities. These will eventually be based on the vehicle selection
+            .MaxA = 5 ' Set the min and max velocities. These will eventually be based on the vehicle selection
+            .Da = 1
+            .AFriction = -1
+
+
         End With
 
 
@@ -576,10 +581,20 @@ Public Class MainForm
             ' Initialize the image that goes with the player
             .PrimaryCarImage = RightP2CarPictureBox.Image
             .RelativeCarPictureBox = LeftP2CarPictureBox
-            .RelativeCarPictureBox.Image = .PrimaryCarImage
+            .RelativeCarPictureBox.Image = .primaryCarImage
 
-            ' Initialize the velocity as 1, because that's what it's doing right now
-            .V = 1
+            ' Initialize the velocity as 0, because they start by not moving
+            .V = 0
+            .MinV = -5 ' Set the min and max velocities. These will eventually be based on the vehicle selection
+            .MaxV = 5 ' Set the min and max velocities. These will eventually be based on the vehicle selection
+            .ReverseV = -2
+
+            ' Initialize Acceleration
+            .A = 0
+            .MinA = -5 ' Set the min and max velocities. These will eventually be based on the vehicle selection
+            .MaxA = 5 ' Set the min and max velocities. These will eventually be based on the vehicle selection
+            .Da = 1
+            .AFriction = -1
         End With
     End Sub
 
