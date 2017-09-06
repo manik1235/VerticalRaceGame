@@ -46,12 +46,29 @@ Public Class MainForm
             Dim ReverseV As Integer ' The Velocity to travel at when going backward. No accelarating on reversing right now, kinda like how Mario Kart feels
             Dim primaryCarImage As Image
             Private _v As Double ' Current Velocity (probably in pixels/tick ?)
+            Private _vasInt As Integer ' Current Velocity changed to an Int
             Private _a As Double ' Current Acceleration (probably in pixels/tick^2 ?)
             Dim x As Integer ' Current x (horz) position of the player vehicle
             Dim dx As Integer ' Amount to change the x position for each tick
             Dim rx As Integer ' Current x (horz) position of the player vehicle relative to the track segment
             Dim y As Integer ' Current y (vert) position of the player vehicle
             Dim ry As Integer ' Current y (vert) position of the player vehicle relative to the track segment
+
+            Public ReadOnly Property VasInt As Integer
+                ' Hopefully returns the value cast to an integer.
+                ' I do it here so I can have one consistent place to do rounding
+                Get
+                    ' If V is between 0 and 1, jump it up to 1 so it starts going right away.
+                    If _v > 0 And _v < 1 Then
+                        _vasInt = 1
+                    Else
+                        _vasInt = CInt(Int(_v))
+                    End If
+
+                    Return _vasInt
+                End Get
+            End Property
+
 
             Public Property V As Double
                 ' Set the sanity checks and boundry conditions for Velocity
@@ -282,7 +299,7 @@ Public Class MainForm
 
         Label5.Text = "MyTracks.LeftTrack.A.Top: " & MyTracks.LeftTrack.A.Top
         Label6.Text = "MyTracks.LeftTrack.B.Top: " & MyTracks.LeftTrack.B.Top
-        Label7.Text = "" & ""
+        Label7.Text = "MyPlayers.P1.VasInt: " & MyPlayers.P1.VasInt
         Label8.Text = "MyPlayers.P1.Da: " & MyPlayers.P1.Da
 
         Label9.Text = "" & ""
@@ -371,21 +388,21 @@ Public Class MainForm
         ' If the Cars have velocity, move them in that direction. Positive V goes forward (track goes down, car goes up)
         ' Player 1
         If TickCounter Mod 1 = 0 Then ' Allows modification based on the TickCounter. Not yet used (hence Mod 1)
-            MyTracks.LeftTrack.A.Top += MyPlayers.P1.V ' Move the track based on the current player's velocity
-            MyTracks.LeftTrack.B.Top += MyPlayers.P1.V ' Move the track based on the current player's velocity
+            MyTracks.LeftTrack.A.Top += MyPlayers.P1.VasInt ' Move the track based on the current player's velocity
+            MyTracks.LeftTrack.B.Top += MyPlayers.P1.VasInt ' Move the track based on the current player's velocity
             'Move the relative car of player 2 down with the track on this side
-            MyPlayers.P2.Ry += MyPlayers.P1.V ' Move the relative car based on the velocity
-            MyPlayers.P1.Ry -= MyPlayers.P1.V ' Move the relative car based on the velocity
+            MyPlayers.P2.ry += MyPlayers.P1.VasInt ' Move the relative car based on the velocity
+            MyPlayers.P1.ry -= MyPlayers.P1.VasInt ' Move the relative car based on the velocity
         End If
 
 
         ' Player 2
         If TickCounter Mod 1 = 0 Then ' Allows modification based on the TickCounter. Not yet used (hence Mod 1)
-            MyTracks.RightTrack.A.Top += MyPlayers.P2.V ' Move the track based on the current player's velocity
-            MyTracks.RightTrack.B.Top += MyPlayers.P2.V ' Move the track based on the current player's velocity
+            MyTracks.RightTrack.A.Top += MyPlayers.P2.VasInt ' Move the track based on the current player's velocity
+            MyTracks.RightTrack.B.Top += MyPlayers.P2.VasInt ' Move the track based on the current player's velocity
             ' Move the relative cars
-            MyPlayers.P2.Ry -= MyPlayers.P2.V ' Move the relative car closer to the top by the same amount.
-            MyPlayers.P1.Ry += MyPlayers.P2.V ' Move the relative car based on the velocity
+            MyPlayers.P2.ry -= MyPlayers.P2.VasInt ' Move the relative car closer to the top by the same amount.
+            MyPlayers.P1.ry += MyPlayers.P2.VasInt ' Move the relative car based on the velocity
         End If
 
 
@@ -577,7 +594,7 @@ Public Class MainForm
             ' Initialize the velocity as 0, because they start by not moving
             .V = 0
             .MinV = -5 ' Set the min and max velocities. These will eventually be based on the vehicle selection
-            .MaxV = 5 ' Set the min and max velocities. These will eventually be based on the vehicle selection
+            .MaxV = 6 ' Set the min and max velocities. These will eventually be based on the vehicle selection
             .ReverseV = -2 'Speed at which to move backwards 
 
             ' Initialize Acceleration
@@ -585,7 +602,7 @@ Public Class MainForm
             .MinA = -5 ' Set the min and max velocities. These will eventually be based on the vehicle selection
             .MaxA = 0.1 ' Set the min and max velocities. These will eventually be based on the vehicle selection
             .Da = 0.01
-            .AFriction = -1
+            .AFriction = -0.2
 
 
         End With
