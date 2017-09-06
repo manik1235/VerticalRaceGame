@@ -1,4 +1,23 @@
-﻿Imports Vertical_Race_Game
+﻿Option Explicit On
+Option Strict On
+
+Imports Vertical_Race_Game
+
+
+' TODO Checklist and general ideas
+' 2017-09-05
+' Player one da set to .01 and maxa set to .1 results in a decent amount of acceleration maxing out at 5 velocity, and not too fast
+' Also taking the tick count at mod 5
+' The tickcount adjusts how often "gas" is applied while the accelerator is down
+' I changed the v and a variables to be doubles instead of ints. there is implicit rounding which I'm not a fan of. I think I can use an option for that... (Turned on Option Strict)
+' I think I can use Class files to organize some of my code. 
+' Perhaps: Initializations, main code
+' I think I can rebuild my MyPlayers and MyTracks structures. I think I can create a general class and then inherit up the tree to ultimately make a single full data structure for everything.
+' Like, have a "Player" "Character" "Vehicle" and "Track" classes. Then, the Player can choose a Character which will sit in a Vehicle.
+' Maybe start with "Player" "Vehicle" and "Track"
+' Then a hybrid "PlayerVehicle" class could be used to access it. It'd have a method like "Apply Gas" which would equal "keyAccell.isDown" or something
+' The class Vehicle is what has the Acceleration and Velocity properties, not the player. Plus then they apply to the track, since it moves down. So that's kinda strange. So really, shouldn't the track have velocity and position? No. The vehicle has velocity, and the track has position. The relative car has position too.
+' 
 
 Public Class MainForm
 
@@ -16,44 +35,44 @@ Public Class MainForm
             Dim RelativeCarPictureBox As PictureBox
             Dim TrackPictureBox As PictureBox
 
-            Dim AFriction As Integer ' Acceleration due to friction
+            Dim AFriction As Double ' Acceleration due to friction
 
-            Dim Da As Integer ' The amount the acceleration changes per tick when the accelerator is pressed
+            Dim Da As Double ' The amount the acceleration changes per tick when the accelerator is pressed
 
-            Dim MinA As Integer
-            Dim MaxA As Integer ' Max Acceleration allowed, same units as above
-            Dim MinV As Integer
-            Dim MaxV As Integer ' Max Velocity allowed, same units as above
+            Dim MinA As Double
+            Dim MaxA As Double ' Max Acceleration allowed, same units as above
+            Dim MinV As Double
+            Dim MaxV As Double ' Max Velocity allowed, same units as above
             Dim ReverseV As Integer ' The Velocity to travel at when going backward. No accelarating on reversing right now, kinda like how Mario Kart feels
             Dim primaryCarImage As Image
-            Private _v As Integer ' Current Velocity (probably in pixels/tick ?)
-            Private _a As Integer ' Current Acceleration (probably in pixels/tick^2 ?)
+            Private _v As Double ' Current Velocity (probably in pixels/tick ?)
+            Private _a As Double ' Current Acceleration (probably in pixels/tick^2 ?)
             Dim x As Integer ' Current x (horz) position of the player vehicle
             Dim dx As Integer ' Amount to change the x position for each tick
             Dim rx As Integer ' Current x (horz) position of the player vehicle relative to the track segment
             Dim y As Integer ' Current y (vert) position of the player vehicle
             Dim ry As Integer ' Current y (vert) position of the player vehicle relative to the track segment
 
-            Public Property V As Integer
+            Public Property V As Double
                 ' Set the sanity checks and boundry conditions for Velocity
                 Get
                     Return _v
                 End Get
-                Set(value As Integer)
+                Set(value As Double)
                     ' Make sure the velocity trying to be set is between the Min and Max allowed
                     If value < MinV Then value = MinV
-                    If value > maxV Then value = maxV
+                    If value > MaxV Then value = MaxV
                     _v = value
                 End Set
             End Property
 
-            Public Property A As Integer
+            Public Property A As Double
                 ' Set the sanity checks and boundry conditions for Acceleration
                 Get
                     Return _a
                 End Get
-                Set(value As Integer)
-                    ' Make sure the velocity trying to be set is between the Min and Max allowed
+                Set(value As Double)
+                    ' Make sure the acceleration trying to be set is between the Min and Max allowed
                     If value < MinA Then value = MinA
                     If value > MaxA Then value = MaxA
                     _a = value
@@ -185,10 +204,13 @@ Public Class MainForm
         ' Player 1
         If MyPlayers.P1.keyAccel.IsDown Then
             'If they have the accelerate key down, increase the acceleration. If not, friction
-            MyPlayers.P1.A += MyPlayers.P1.Da
+            If TickCounter Mod 5 = 0 Then
+                'Only increase the acceleration every x ticks to see if it's smoother
+                MyPlayers.P1.A += MyPlayers.P1.Da
+            End If
         Else
             ' Apply friction if they aren't accelerating
-            MyPlayers.P1.A += MyPlayers.P1.AFriction
+            MyPlayers.P1.A = MyPlayers.P1.AFriction
             If (MyPlayers.P1.V + MyPlayers.P1.A) < 0 Then 'compare what the new velocity will be after acceleration application
                 ' Don't allow friction to drop velocity lower than zero
                 MyPlayers.P1.A = 0
@@ -201,7 +223,7 @@ Public Class MainForm
             MyPlayers.P2.A += MyPlayers.P2.Da
         Else
             ' Apply friction if they aren't accelerating
-            MyPlayers.P2.A += MyPlayers.P2.AFriction
+            MyPlayers.P2.A = MyPlayers.P2.AFriction
             If (MyPlayers.P2.V + MyPlayers.P2.A) < 0 Then
                 ' Don't allow friction to drop velocity lower than zero
                 MyPlayers.P2.A = 0
@@ -236,23 +258,38 @@ Public Class MainForm
     End Sub
 
     Private Sub UpdateDebugDisplay()
-        ' Player1
 
-        'Label8.Text = MyPlayers.P1.keyAccel.IsDown
-        'Label7.Text = MyPlayers.P1.keyBrake.IsDown
-        'Label6.Text = MyPlayers.P1.keyMoveLeft.IsDown
-        'Label5.Text = MyPlayers.P1.keyMoveRight.IsDown
-        ' Player2
-        Label12.Text = MyPlayers.P2.keyAccel.IsDown
-        Label11.Text = MyPlayers.P2.keyBrake.IsDown
-        Label10.Text = MyPlayers.P2.keyMoveLeft.IsDown
-        Label9.Text = MyPlayers.P2.keyMoveRight.IsDown
+        ''Label Templates
+        'Label1.Text = "" & ""
+        'Label2.Text = "" & ""
+        'Label3.Text = "" & ""
+        'Label4.Text = "" & ""
 
-        ' Car positions
-        Label8.Text = "P1.X: " & MyPlayers.P1.X
-        Label7.Text = "P1.Y: " & MyPlayers.P1.Y
-        Label6.Text = "P1.RY: " & MyPlayers.P1.Ry
-        Label5.Text = "A.top: " & (LeftTrackPictureBoxA.Top - MyPlayers.P1.Y)
+        'Label5.Text = "" & ""
+        'Label6.Text = "" & ""
+        'Label7.Text = "" & ""
+        'Label8.Text = "" & ""
+
+        'Label9.Text = "" & ""
+        'Label10.Text = "" & ""
+        'Label11.Text = "" & ""
+        'Label12.Text = "" & ""
+
+        Label1.Text = "MyPlayers.P1.A: " & MyPlayers.P1.A
+        Label2.Text = "MyPlayers.P1.V: " & MyPlayers.P1.V
+        Label3.Text = "MyPlayers.P1.x: " & MyPlayers.P1.x
+        Label4.Text = "MyPlayers.P1.y: " & MyPlayers.P1.y
+
+        Label5.Text = "MyTracks.LeftTrack.A.Top: " & MyTracks.LeftTrack.A.Top
+        Label6.Text = "MyTracks.LeftTrack.B.Top: " & MyTracks.LeftTrack.B.Top
+        Label7.Text = "" & ""
+        Label8.Text = "MyPlayers.P1.Da: " & MyPlayers.P1.Da
+
+        Label9.Text = "" & ""
+        Label10.Text = "" & ""
+        Label11.Text = "" & ""
+        Label12.Text = "" & ""
+
 
         ' Where do I want it? To move opposite the velocity of my track.
         ' How fast is my track moving? Add it in there. Add RelativeCarMove
@@ -329,7 +366,6 @@ Public Class MainForm
     Private Sub MoveMyTracksRoot()
         ' Move the tracks down every tick, if the car has velocity.
         ' Also move the relative car forward the same amount
-        ' Tracks move directly, car moves indirectly
         ' When the other track moves, move the relative car 
 
         ' If the Cars have velocity, move them in that direction. Positive V goes forward (track goes down, car goes up)
@@ -547,8 +583,8 @@ Public Class MainForm
             ' Initialize Acceleration
             .A = 0
             .MinA = -5 ' Set the min and max velocities. These will eventually be based on the vehicle selection
-            .MaxA = 5 ' Set the min and max velocities. These will eventually be based on the vehicle selection
-            .Da = 1
+            .MaxA = 0.1 ' Set the min and max velocities. These will eventually be based on the vehicle selection
+            .Da = 0.01
             .AFriction = -1
 
 
@@ -586,14 +622,14 @@ Public Class MainForm
             ' Initialize the velocity as 0, because they start by not moving
             .V = 0
             .MinV = -5 ' Set the min and max velocities. These will eventually be based on the vehicle selection
-            .MaxV = 5 ' Set the min and max velocities. These will eventually be based on the vehicle selection
+            .MaxV = 10 ' Set the min and max velocities. These will eventually be based on the vehicle selection
             .ReverseV = -2
 
             ' Initialize Acceleration
             .A = 0
             .MinA = -5 ' Set the min and max velocities. These will eventually be based on the vehicle selection
-            .MaxA = 5 ' Set the min and max velocities. These will eventually be based on the vehicle selection
-            .Da = 1
+            .MaxA = 3 ' Set the min and max velocities. These will eventually be based on the vehicle selection
+            .Da = 0.1
             .AFriction = -1
         End With
     End Sub
@@ -631,14 +667,12 @@ Public Class MainForm
     Private Sub MainForm_PreviewKeyDown(sender As Object, e As PreviewKeyDownEventArgs) Handles MyBase.PreviewKeyDown
         DbgPreviewKeyDownCounter += 1
         'e.IsInputKey = True
-        Label1.Text = "PreviewKeyDown: " & DbgPreviewKeyDownCounter & " IsInputKey: " & e.IsInputKey & " KeyCode: " & e.KeyCode & " KeyData: " & e.KeyData & " KeyValue: " & e.KeyValue
 
     End Sub
 
     Private Sub MainForm_KeyDown(sender As Object, e As KeyEventArgs) Handles MyBase.KeyDown
         DbgKeyDownCounter += 1
         e.Handled = True
-        Label2.Text = "KeyDown: " & DbgKeyDownCounter & " Handled: " & e.Handled & " KeyCode: " & e.KeyCode & " KeyData: " & e.KeyData & " KeyValue: " & e.KeyValue
         ' This module gets much more of the key presses, including arrows. it also gets repeated when a key is held down.
 
         'KeyCode is the best to use (instead of KeyData or KeyValue) per msdn forums
@@ -663,7 +697,6 @@ Public Class MainForm
 
     Private Sub MainForm_KeyPress(sender As Object, e As KeyPressEventArgs) Handles MyBase.KeyPress
         DbgKeyPressCounter += 1
-        Label3.Text = "KeyPress: " & DbgKeyPressCounter & " KeyChar: " & e.KeyChar & " " & " Handled: " & e.Handled
 
     End Sub
 
