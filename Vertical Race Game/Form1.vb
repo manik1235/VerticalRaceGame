@@ -5,6 +5,10 @@ Imports Vertical_Race_Game
 
 
 ' TODO Checklist and general ideas
+' 2017-09-08
+' DONE: I'm sorta bored so lets work on the left and right boundaries.
+' DONE: Fix/reposition the track when it goes backwards 
+' TODO: Generalize the track sections, so that I can have an arbitrary number of sections, and a start and finish line.
 ' 2017-09-05
 ' Player one da set to .01 and maxa set to .1 results in a decent amount of acceleration maxing out at 5 velocity, and not too fast
 ' Also taking the tick count at mod 5
@@ -21,11 +25,16 @@ Imports Vertical_Race_Game
 
 Public Class MainForm
 
-
+    ''' <summary>
+    '''   This structure allows all player items to be held in a single variable
+    ''' </summary>
     Structure PlayerInfoStructure
         Dim P1 As PlayerControls
         Dim P2 As PlayerControls
 
+        ''' <summary>
+        '''   This structure aggregates all the characteristics that are shared between players but have unique values
+        ''' </summary>
         Structure PlayerControls
             Dim keyMoveLeft As PlayerKeys
             Dim keyMoveRight As PlayerKeys
@@ -48,11 +57,13 @@ Public Class MainForm
             Private _v As Double ' Current Velocity (probably in pixels/tick ?)
             Private _vasInt As Integer ' Current Velocity changed to an Int
             Private _a As Double ' Current Acceleration (probably in pixels/tick^2 ?)
-            Dim x As Integer ' Current x (horz) position of the player vehicle
+            Private _x As Integer ' Current x (horz) position of the player vehicle
             Dim dx As Integer ' Amount to change the x position for each tick
             Dim rx As Integer ' Current x (horz) position of the player vehicle relative to the track segment
-            Dim y As Integer ' Current y (vert) position of the player vehicle
+            Dim Y As Integer ' Current y (vert) position of the player vehicle
             Dim ry As Integer ' Current y (vert) position of the player vehicle relative to the track segment
+            Dim MinX As Integer ' Left boundary of the map
+            Dim MaxX As Integer ' Right boundary of the map
 
             Public ReadOnly Property VasInt As Integer
                 ' Hopefully returns the value cast to an integer.
@@ -96,6 +107,25 @@ Public Class MainForm
                 End Set
             End Property
 
+            Public Property X As Integer
+                Get
+                    Return _x
+                End Get
+                Set(value As Integer)
+                    ' Enforce the boundary conditions
+                    If value < MinX Then
+                        value = MinX
+                    ElseIf value > MaxX Then
+                        value = MaxX
+                    End If
+                    _x = value
+                End Set
+            End Property
+
+
+            ''' <summary>
+            '''   Holds the info on the keys assigned to each player
+            ''' </summary>
             Structure PlayerKeys
                 Private _isDown As Boolean
                 Private _defaultValue As Integer
@@ -294,8 +324,8 @@ Public Class MainForm
 
         Label1.Text = "MyPlayers.P1.A: " & MyPlayers.P1.A
         Label2.Text = "MyPlayers.P1.V: " & MyPlayers.P1.V
-        Label3.Text = "MyPlayers.P1.x: " & MyPlayers.P1.x
-        Label4.Text = "MyPlayers.P1.y: " & MyPlayers.P1.y
+        Label3.Text = "MyPlayers.P1.x: " & MyPlayers.P1.X
+        Label4.Text = "MyPlayers.P1.y: " & MyPlayers.P1.Y
 
         Label5.Text = "MyTracks.LeftTrack.A.Top: " & MyTracks.LeftTrack.A.Top
         Label6.Text = "MyTracks.LeftTrack.B.Top: " & MyTracks.LeftTrack.B.Top
@@ -431,7 +461,7 @@ Public Class MainForm
     End Sub
 
     Private Sub RelocateDisplayedTrackSegments()
-        ' Relocate Tracks A or B if they move below the panel's border
+        ' Relocate Tracks A or B if they move below the panel's border (e.g. Cars are moving forward)
         ' Indirectly thru the Track structure
 
         ' Left Track
@@ -450,23 +480,26 @@ Public Class MainForm
             MyTracks.RightTrack.B.Top = MyTracks.RightTrack.A.Top - MyTracks.RightTrack.B.Height
         End If
 
+        ' Relocate Tracks A or B if they move above the panel's border (e.g. Cars are moving backward)
+        ' Indirectly thru the Track structure
 
-        ' This one works with the direct movement method, not indirect
-        '        ' Left Track
-        '        If LeftTrackPictureBoxA.Top > LeftRaceBackgroundPanel.Height Then
-        '        LeftTrackPictureBoxA.Top = LeftTrackPictureBoxB.Top - LeftTrackPictureBoxA.Height
-        '        End If
-        '        If LeftTrackPictureBoxB.Top > LeftRaceBackgroundPanel.Height Then
-        '        LeftTrackPictureBoxB.Top = LeftTrackPictureBoxA.Top - LeftTrackPictureBoxB.Height
-        '        End If
-        '
-        '        ' Right Track
-        '        If RightTrackPictureBoxA.Top > RightRaceBackgroundPanel.Height Then
-        '        RightTrackPictureBoxA.Top = RightTrackPictureBoxB.Top - RightTrackPictureBoxA.Height
-        '        End If
-        '        If RightTrackPictureBoxB.Top > RightRaceBackgroundPanel.Height Then
-        '        RightTrackPictureBoxB.Top = RightTrackPictureBoxA.Top - RightTrackPictureBoxB.Height
-        '        End If
+        ' Left Track
+        If (MyTracks.LeftTrack.A.Top + MyTracks.LeftTrack.A.Height) < MyTracks.LeftTrack.BorderHeight Then ' if Track Section A moves above the visible panel, relocate Section B to be below it.
+            MyTracks.LeftTrack.B.Top = MyTracks.LeftTrack.A.Top + MyTracks.LeftTrack.A.Height
+        End If
+        If (MyTracks.LeftTrack.B.Top + MyTracks.LeftTrack.B.Height) < MyTracks.LeftTrack.BorderHeight Then ' If Track section  B moves above the visible panel, relocate Section A to be below it.
+            MyTracks.LeftTrack.A.Top = MyTracks.LeftTrack.B.Top + MyTracks.LeftTrack.B.Height
+        End If
+
+        ' Right Track
+        If (MyTracks.RightTrack.A.Top + MyTracks.RightTrack.A.Height) < MyTracks.RightTrack.BorderHeight Then ' if Track Section A moves above the visible panel, relocate Section B to be below it.
+            MyTracks.RightTrack.B.Top = MyTracks.RightTrack.A.Top + MyTracks.RightTrack.A.Height
+        End If
+        If (MyTracks.RightTrack.B.Top + MyTracks.RightTrack.B.Height) < MyTracks.RightTrack.BorderHeight Then ' If Track section  B moves above the visible panel, relocate Section A to be below it.
+            MyTracks.RightTrack.A.Top = MyTracks.RightTrack.B.Top + MyTracks.RightTrack.B.Height
+        End If
+
+
     End Sub
 
     Private Sub MoveTrack(Track As PictureBox, VSpeed As Integer)
@@ -578,6 +611,10 @@ Public Class MainForm
             .keyMoveRight.CurValue = Keys.D
             .keyMoveRight.IsDown = False
 
+            ' Initialize the track boundaries
+            .MinX = 0
+            .MaxX = LeftRaceBackgroundPanel.Width - LeftP1CarPictureBox.Width
+
             ' Set the initial location properties
             .Dx = 1
             .X = 156 ' 156 is the x value of the PictureBox on Track 1
@@ -604,7 +641,6 @@ Public Class MainForm
             .Da = 0.01
             .AFriction = -0.2
 
-
         End With
 
 
@@ -622,6 +658,10 @@ Public Class MainForm
             .keyMoveRight.DefaultValue = Keys.Right
             .keyMoveRight.CurValue = Keys.Right
             .keyMoveRight.IsDown = False
+
+            ' Initialize the track boundaries
+            .MinX = 0
+            .MaxX = LeftRaceBackgroundPanel.Width - LeftP1CarPictureBox.Width
 
             ' Set the initial location properties
             .Dx = 1
