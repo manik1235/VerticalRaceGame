@@ -9,6 +9,8 @@ Imports Vertical_Race_Game
 ' DONE: I'm sorta bored so lets work on the left and right boundaries.
 ' DONE: Fix/reposition the track when it goes backwards 
 ' TODO: Generalize the track sections, so that I can have an arbitrary number of sections, and a start and finish line.
+' TODO: Crashing cars
+' TODO: Update the car structure to have an "Apply Gas" function.
 ' 2017-09-05
 ' Player one da set to .01 and maxa set to .1 results in a decent amount of acceleration maxing out at 5 velocity, and not too fast
 ' Also taking the tick count at mod 5
@@ -203,9 +205,15 @@ Public Class MainForm
     Dim DbgKeyPressCounter As Integer
     Dim DbgKeyUpCounter As Integer
 
-    Dim MyPlayers As PlayerInfoStructure ' Holds the information for the Player and car structures
+    '' Original way
+    'Dim MyPlayers As PlayerInfoStructure ' Holds the information for the Player and car structures
+    '
+    'Dim MyTracks As TrackInfoStructure ' Holds the information for the Track structures
 
-    Dim MyTracks As TrackInfoStructure ' Holds the information for the Track structures
+    '' New Way
+    'Dim MyPlayers As New PlayerClass ' Holds the information for the Player and car structures
+    '
+    'Dim MyTracks As New TrackClass ' Holds the information for the Track structures
 
     Private Sub TrackTimer_Tick(sender As Object, e As EventArgs) Handles TrackTimer.Tick
 
